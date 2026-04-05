@@ -1,0 +1,5 @@
+Video,Condition,Geom_Kyphosis_Mean,Geom_Kyphosis_SD,Spine_Kyphosis_Mean,Spine_Kyphosis_SD,Lordosis_Mean,Lordosis_SD,TFL_Mean,TFL_SD,N_Frames
+Subject1_Unloaded,unloaded,9.52,13.05,9.61,13.41,14.73,15.28,3.33,5.70,48
+Subject1_Loaded,loaded,7.37,6.52,5.76,5.80,13.64,16.85,10.56,2.41,37
+Recording_Unloaded,unloaded,24.77,5.31,17.68,3.60,26.17,8.21,1.51,1.21,56
+VideoProject3_Unloaded,unloaded,11.47,5.04,9.74,4.08,19.06,10.99,3.50,2.56,167

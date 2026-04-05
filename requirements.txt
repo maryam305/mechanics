@@ -1,0 +1,8 @@
+spinepose
+onnxruntime
+opencv-python
+numpy
+scipy
+matplotlib
+tqdm
+openvino-dev
