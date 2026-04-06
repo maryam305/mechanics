@@ -64,7 +64,7 @@ OUT_PLOT_COMP  = '/content/plot_comparison.png'
 
 # ── SpinePose keypoint indices (37-point model) ───────────────────
 SPINE_IDX = {
-    'C1':36,'C4':35,'C7':17,
+    'C1':36,'C4':35,'C7':18,
     'T3':30,'T8':29,
     'L1':28,'L3':27,'L5':26,
     'Sacrum':19,

@@ -1,0 +1,5 @@
+Branch,Metric,Mean,SD,N_Frames
+N,Neck Inclination,5.8579,4.0683,167
+R,Thoracic Kyphosis,9.0598,3.8243,167
+M,Lumbar Lordosis,25.2842,13.4685,167
+A,Trunk Forward Lean,3.1045,2.6126,167
