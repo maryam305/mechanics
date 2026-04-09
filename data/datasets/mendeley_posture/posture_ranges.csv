@@ -1,0 +1,4 @@
+condition,min_deg,max_deg
+normal,20,40
+mild,40,60
+severe,60,999

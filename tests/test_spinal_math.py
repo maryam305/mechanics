@@ -28,19 +28,19 @@ class TestSpinalMath(unittest.TestCase):
         angle = spine_analysis._segment_inclination(pt_top, pt_bot)
         self.assertAlmostEqual(angle, 45.0, places=5)
 
-    def test_symmetric_case_positivity(self):
-        """Case 3: Symmetric segments should have same magnitude (abs check)."""
+    def test_symmetric_case_directionality(self):
+        """Case 3: Symmetric segments should have opposite signs (directionality)."""
         pt_top = [100, 100]
-        pt_bot_pos = [150, 200] # tilted right
-        pt_bot_neg = [50, 200]  # tilted left
+        pt_bot_pos = [150, 200] # tilted right (positive dx)
+        pt_bot_neg = [50, 200]  # tilted left (negative dx)
         
         angle_pos = spine_analysis._segment_inclination(pt_top, pt_bot_pos)
         angle_neg = spine_analysis._segment_inclination(pt_top, pt_bot_neg)
         
-        # Both should be positive due to abs(atan2(...))
-        self.assertGreaterEqual(angle_pos, 0)
-        self.assertGreaterEqual(angle_neg, 0)
-        self.assertAlmostEqual(angle_pos, angle_neg, places=5)
+        # Should be directional
+        self.assertGreater(angle_pos, 0)
+        self.assertLess(angle_neg, 0)
+        self.assertAlmostEqual(angle_pos, -angle_neg, places=5)
 
     def test_frame_id_synchronization(self):
         """Case 4: Synchronized merge using Frame-ID (handling dropped frames)."""

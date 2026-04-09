@@ -1,92 +1,101 @@
+"""
+config.py — Central Configuration for Dual-Method Spinal Curvature Analysis
+============================================================================
+Unified settings for SpinePose (Anatomical) + Geometric pipelines,
+calibration model, dataset paths, and reproducibility parameters.
+"""
+
 import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# ── Global Research Transparency ──────────────────────────────────
-# All parameters (thresholds, smoothing window, polynomial degree) are fixed 
-# and documented to ensure reproducibility.
+# ── Reproducibility ────────────────────────────────────────────────
 REPRODUCIBILITY_NOTE = (
-    "All parameters (thresholds, smoothing window, polynomial degree) are fixed "
-    "and documented to ensure reproducibility."
+    "All random seeds fixed at 42. Results are deterministic given the same input."
 )
-COORDINATE_CONVENTION = "Image coordinates (y-axis increases downward)"
+RANDOM_SEED = 42
 
-METHOD_TYPE = {
-    "spinepose": "anatomical",
-    "silhouette": "geometric"
-}
+# ── Directory Structure ────────────────────────────────────────────
+BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
+RAW_VIDEO_DIR   = os.path.join(BASE_DIR, "data", "raw_videos")
+OUTPUT_DIR      = os.path.join(BASE_DIR, "outputs")
+FIGURE_DIR      = os.path.join(OUTPUT_DIR, "figures")
+CSV_DIR         = os.path.join(OUTPUT_DIR, "csv")
+MODEL_DIR       = os.path.join(BASE_DIR, "models", "calibration")
+DATASET_DIR     = os.path.join(BASE_DIR, "data", "datasets")
+OWN_DATASET_PATH = os.path.join(DATASET_DIR, "own_dataset")
 
-# ── Video classification ──────────────────────────────────────────
+for d in [RAW_VIDEO_DIR, OUTPUT_DIR, FIGURE_DIR, CSV_DIR, MODEL_DIR, DATASET_DIR, OWN_DATASET_PATH]:
+    os.makedirs(d, exist_ok=True)
+
+# ── Video Metadata ─────────────────────────────────────────────────
 VIDEO_INFO = [
-    {
-        "filename": "ya rab.mp4",
-        "display_name": "Subject1_Unloaded",
-        "condition": "unloaded",
-        "subject_id": "subject_1",
-    },
-    {
-        "filename": "rab aded.mp4",
-        "display_name": "Subject1_Loaded",
-        "condition": "loaded",
-        "subject_id": "subject_1",
-    },
-    {
-        "filename": "Recording 2026-04-04 184226.mp4",
-        "display_name": "Recording_Unloaded",
-        "condition": "unloaded",
-        "subject_id": "recording_1",
-    },
-    {
-        "filename": "Video Project 3.mp4",
-        "display_name": "VideoProject3_Unloaded",
-        "condition": "unloaded",
-        "subject_id": "project_3",
-    },
+    {"display_name": "Normal Posture",   "filename": "normal_posture.mp4",  "label": "normal"},
+    {"display_name": "Mild Kyphosis",    "filename": "mild_kyphosis.mp4",   "label": "mild"},
+    {"display_name": "Severe Kyphosis",  "filename": "severe_kyphosis.mp4", "label": "severe"},
 ]
 
-# ── Directory Structure ───────────────────────────────────────────
-RAW_VIDEO_DIR = os.path.join(BASE_DIR, "data", "raw")
-OUTPUT_DIR    = os.path.join(BASE_DIR, "data", "outputs")
-VID_DIR       = os.path.join(OUTPUT_DIR, "videos")
-PLOT_DIR      = os.path.join(OUTPUT_DIR, "plots")
-REPORT_DIR    = os.path.join(OUTPUT_DIR, "reports")
-
-# ── Pipeline Parameters ───────────────────────────────────────────
-CONTOUR_CONFIG = {
-    "iqr_multiplier": 1.5,
-    "poly_degree": 3,              # 3 avoids overfitting (degree 4 introduces artificial curvature)
-    "roi_pad_px": 30,              
-    "mask_area_min": 500,          # Empirically chosen to reject incomplete segmentations
-    "contour_pts_min": 20,
-    "smoothing_window": 9,         # Temporal moving average size
-}
-
-# ── SpinePose ─────────────────────────────────────────────────────
+# ── SpinePose Model Configuration ─────────────────────────────────
 SPINEPOSE_CONFIG = {
-    "device": "cpu",
-    "conf_thresh": 0.3,
+    "model_path":  os.path.join(BASE_DIR, "models", "spinepose", "spinepose_cvpr2025.pth"),
+    "conf_thresh": 0.5,       # Minimum keypoint confidence to accept frame
+    "input_size":  (256, 192) # Model input resolution (H, W)
 }
 
-# ── Normative values & Significance ──────────────────────────────
-# Clinical Interpretations:
-# - Differences > 5° between geometric and anatomical methods may be biomechanically significant.
-# - Keypoint confidence < 0.5 indicates unreliable detection.
-BIOMECHANICAL_SIGNIFICANCE_DEG = 5.0
-RELIABILITY_CONF_THRESH = 0.5
-
-NORMS = {
-    "thoracic_kyphosis": {"mean": 47.3, "sd": 10.5, "ref": "Ohlendorf 2023 (surface)"},
-    "lumbar_lordosis":   {"mean": 28.1, "sd": 9.3,  "ref": "Ohlendorf 2023 (surface)"},
-    "lumbar_bending":    {"mean": 11.0, "sd": 5.0,  "ref": "Ohlendorf 2023"},
-    "trunk_lean":        {"mean": 4.0,  "sd": 3.0,  "ref": "Lyu & LaBat 2016; Aslam 2025"},
+# ── Contour / Geometric Configuration ────────────────────────────
+CONTOUR_CONFIG = {
+    "mask_area_min":    500,   # Minimum silhouette pixel area (px^2)
+    "contour_pts_min":  20,    # Minimum back-contour points for fitting
+    "poly_degree":      3,     # Polynomial degree for curve fitting (cubic)
+    "smoothing_window": 9,     # Temporal smoothing window (frames)
+    "iqr_multiplier":   1.5,   # IQR outlier rejection factor
 }
 
-# ── Aesthetics ────────────────────────────────────────────────────
-COLORS = {
-    "geometric": "#2196F3",  # Blue
-    "anatomical": "#F44336", # Red
+# ── Reliability Thresholds ────────────────────────────────────────
+RELIABILITY_CONF_THRESH = 0.5   # Warn if mean SpinePose confidence < this
+REJECTION_RATE_WARN     = 40.0  # Warn if rejection rate (%) exceeds this
+
+# ── Calibration Model Configuration ──────────────────────────────
+CALIBRATION_CONFIG = {
+    "n_estimators":  200,
+    "random_state":  RANDOM_SEED,
+    "test_size":     0.2,
+    "features": [
+        "spinepose_angle",
+        "surface_curvature",
+        "angle_diff",          # spinepose - surface
+        "trunk_lean",
+        "confidence",
+        "curvature_variance",
+    ],
+    "target": "spinepose_angle_smoothed",
 }
 
-# ── Subject info ──────────────────────────────────────────────────
-SUBJECT_HEIGHT_CM = 183.0
-SUBJECT_SEX       = "male"
+# ── Dataset Paths ─────────────────────────────────────────────────
+# Mendeley Posture Dataset (used for clinical range validation)
+MENDELEY_DATASET_PATH = os.path.join(DATASET_DIR, "mendeley_posture")
+# SpineTrack Dataset (keypoint structure reference)
+SPINETRACK_DATASET_PATH = os.path.join(DATASET_DIR, "spinetrack")
+# Own collected dataset (training + evaluation)
+OWN_DATASET_PATH = os.path.join(DATASET_DIR, "own_dataset")
+OWN_LABELS_CSV   = os.path.join(OWN_DATASET_PATH, "labels.csv")  # cols: filename, label
+
+# ── Clinical Reference Ranges (from Mendeley/Literature) ─────────
+CLINICAL_RANGES = {
+    "kyphosis": {
+        "normal":   (20, 40),   # degrees
+        "mild":     (40, 60),
+        "severe":   (60, 999),
+    },
+    "geometric": {
+        "normal":   (0, 20),
+        "mild":     (20, 40),
+        "severe":   (40, 999),
+    }
+}
+
+# ── Plot Style ────────────────────────────────────────────────────
+PLOT_COLORS = {
+    "anatomical": "#1f77b4",
+    "geometric":  "#ff7f0e",
+    "calibrated": "#2ca02c",
+    "reference":  "#d62728",
+}

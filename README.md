@@ -1,116 +1,85 @@
-# 🧬 Spinal Posture Analysis Framework (NRMA)
+# Dual-Method Spinal Curvature Analysis & AI Calibration Layer
+**Automated Clinical-Grade Posture Assessment Pipeline**
 
-[![Research Grade](https://img.shields.io/badge/Status-Research--Grade-blue.svg)](#)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-green.svg)](#)
-[![MediaPipe](https://img.shields.io/badge/Powered%20By-MediaPipe-orange.svg)](#)
-[![SpinePose](https://img.shields.io/badge/Powered%20By-SpinePose-red.svg)](#)
-
-A comprehensive, dual-pipeline framework for non-invasive spinal posture analysis using computer vision. This tool enables direct comparison between **Geometric Back Surface Curvature** and **Anatomical Keypoint-based (SpinePose)** spinal estimation.
+## 🚀 1. Project Overview
+This project implements a robust, dual-method pipeline for measuring spinal curvature from 2D side-view (sagittal) video. It uses Computer Vision to replicate clinical radiographic standards (Cobb Angle) while simultaneously profiling back-surface geometry. An AI-driven calibration layer then reconciles the discrepancies between internal anatomical landmarks and external surface observations.
 
 ---
 
-## 📌 Project Overview
-
-This framework implements a **Neck-Rib-Mid-Abdomen (NRMA)** branching logic to analyze spinal alignment from side-view RGB videos. It is designed for researchers and biomechanists seeking a low-cost, non-invasive alternative to radiographic imaging for trend analysis.
-
-### Core Pipelines
-1.  **Anatomical Method**: Utilizes the **SpinePose** (CVPR 2025) 37-keypoint model for precise vertebral landmark detection (C1-Sacrum).
-2.  **Geometric Method**: Uses **MediaPipe Selfie Segmentation** to extract the external back surface contour and estimate curvature through high-order polynomial fitting.
-
----
-
-## 🏗️ System Architecture
-
-```mermaid
-graph TD
-    A[Input Video] --> B{Pre-processing}
-    B --> C[Anatomical Pipeline]
-    B --> D[Geometric Pipeline]
-    
-    subgraph Anatomical
-    C --> C1[SpinePose Detection]
-    C1 --> C2[Inclination Math]
-    C2 --> C3[Multi-segment Cobb Angle]
-    end
-    
-    subgraph Geometric
-    D --> D1[MediaPipe Segmentation]
-    D1 --> D2[Surface Contour Extraction]
-    D2 --> D3[Polynomial Fitting]
-    end
-    
-    C3 --> E[Unified Comparison]
-    D3 --> E
-    E --> F[Research Report & Visualizations]
-```
+## 🏗️ 2. System Architecture
+The system operates through five major stages:
+1.  **Video Ingestion:** Native FPS frame extraction and adaptive resizing.
+2.  **Dual-Detection Path:**
+    *   **Anatomical Tracker:** SpinePose (CVPR 2025) detects 37 spinal keypoints.
+    *   **Geometric Tracker:** MediaPipe Selfie Segmentation extracts the person's silhouette.
+3.  **Algorithmic Analysis:**
+    *   **Cobb Calculation:** Multi-segment inclination analysis with lean-bias removal.
+    *   **Back Profiling:** Centerline extraction followed by degree-3 polynomial fitting.
+4.  **Temporal Post-Processing:** Savitzky-Golay denoising and outlier rejection.
+5.  **AI Calibration:** Features from both paths are fed into a RandomForest Regressor to predict the clinical Cobb angle with high precision.
 
 ---
 
-## 📂 Directory Structure
+## 📐 3. Technical Algorithms
 
-```text
-/
-├── config.py                # Global research parameters & directory configs
-├── spine_analysis.py        # Anatomical (SpinePose) analysis module
-├── surface_curvature_analysis.py # Geometric (Surface) analysis module
-├── unified_comparison.py     # Cross-method synchronization & reporting
-├── data/
-│   ├── raw/                 # Input videos (.mp4)
-│   └── outputs/             # Generated plots, CSVs, and videos
-├── scripts/
-│   └── archive/             # Retired or original source scripts
-├── tests/                   # Mathematical validation & unit tests
-└── logs/                    # Execution & analysis logs
-```
+### 3.1 Anatomical Cobb Angle (spine_analysis.py)
+The Cobb angle is computed using a robust multi-segment estimator:
+*   **Formula:** `Cobb = |Mean(Top-2 Inclinations) - Mean(Bottom-2 Inclinations)|`
+*   **Inclination Definition:** `atan2(dx, |dy|)` relative to the vertical axis.
+*   **Lean Bias (FIX-2):** The global trunk lean (C7 to Sacrum vector) is subtracted from every individual segment's inclination before the Cobb calculation. This ensures we measure **true curvature** rather than just forward tilt.
+*   **Spinal Chain:** The model specifically tracks C1, C4, C7, T3, T8, L1, L3, L5, and the Sacrum.
+
+### 3.2 Geometric Surface Curvature (surface_curvature_analysis.py)
+*   **Segmentation:** Primarily uses MediaPipe, with a luminance-based GrabCut fallback for low-light frames.
+*   **Centerline Extraction (FIX-4):** To avoid bias from loose clothing or arms, the x-coordinate is the mean of the left and right silhouette edges at every y-level (`cx = (x_left + x_right) / 2`).
+*   **Curve Fitting:** A cubic polynomial ($x = ay^3 + by^2 + cy + d$) is fitted to the centerline.
+*   **Surface Angle:** Determined by the mathematical difference in the first derivative (tangent) at the shoulder and hip levels.
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Prerequisites
-- Python 3.8 or higher
-- CUDA-capable GPU (Recommended for SpinePose)
-- OpenCV, MediaPipe, NumPy, SciPy, Matplotlib, Pandas
-
-### 2. Installation
-```bash
-git clone <repository-url>
-pip install -r requirements.txt
-```
-*Note: Ensure the `spinepose` library is correctly installed and accessible in your environment.*
-
-### 3. Configuration
-All research parameters (smoothing windows, polynomial degrees, confidence thresholds) are centralized in `config.py`. Update `VIDEO_INFO` to include your subject data.
+## 🧠 4. AI Calibration Layer (calibration_model.py)
+The system reconciles the two pipelines using a 6-feature matrix:
+1.  `spinepose_angle`: The raw anatomical Cobb angle.
+2.  `surface_curvature`: The raw geometric profile angle.
+3.  `angle_diff`: The disagreement between the two trackers.
+4.  `trunk_lean`: The removed forward tilt bias.
+5.  `confidence`: The mean SpinePose detection confidence (used for error weighting).
+6.  `curvature_variance`: Rolling 5-frame variance to detect temporal instability.
 
 ---
 
-## 📊 Methodology & Math
-
-### Standardized Angle Computation
-Both pipelines utilize the standardized inclination-from-vertical formula:
-$$\text{Angle} = \left| \operatorname{atan2}(\Delta x, |\Delta y|) \right|$$
-This ensures consistency when comparing surface-level geometric metrics with underlying vertebral alignment.
-
-### Synchronized Comparison
-The `unified_comparison.py` script performs **Frame-ID Matching** to ensure that comparisons only occur on physically identical moments, accounting for independent frame rejections in each pipeline.
+## 🛑 5. Troubleshooting & Windows Fixes
+During development, several platform-specific issues were identified and resolved:
+*   **Unicode Encoding Crash:** Windows `cmd` and `powershell` often fail when printing non-standard symbols like `→`. All logging symbols were replaced with standard `->` to prevent `UnicodeEncodeError`.
+*   **MediaPipe Legacy Fix:** Recent MediaPipe versions often omit the `solutions` submodule. We forced installation of `mediapipe==0.10.11` and downgraded `protobuf<4` to restore functionality.
+*   **Directory Management:** Automated creation of `data/`, `outputs/`, and `models/` folders ensures the pipeline runs out-of-the-box.
 
 ---
 
-## ⚠️ Important Disclaimers
+## 📊 6. Clinical Standards Comparison
+The pipeline classifies posture into three clinical groups based on the Mendeley Posture Dataset:
 
-> [!IMPORTANT]
-> **Non-Clinical Use**: This system is intended for research-based, vision-based posture analysis and **does not replace radiographic assessment** or medical diagnosis.
-
-> [!WARNING]
-> **2D Projection Limits**: All measurements are derived from 2D sagittally-aligned projections. Results are sensitive to camera alignment, perspective distortion, and 3D spinal rotation.
-
----
-
-## 📜 References
-- **Ohlendorf et al. (2023)**: Standard values for upper body posture. *Scientific Reports*.
-- **SpinePose (2025)**: Advanced keypoint estimation for spinal biomechanics.
-- **MediaPipe**: Real-time cross-platform package for media processing.
+| Group | Cobb Angle (Radiographic) | Surface Curvature (Geometric) |
+| :--- | :--- | :--- |
+| **Normal** | 20° – 40° | 0° – 20° |
+| **Mild** | 40° – 60° | 20° – 40° |
+| **Severe** | > 60° | > 40° |
 
 ---
 
-**Contributors**: Antigravity | Advanced Agentic Coding Team
+## 🛠️ 7. Installation & Usage
+### Installation
+1.  **Environment:** Python 3.11+
+2.  **Dependencies:** `pip install -r requirements.txt`
+3.  **Setup:** `python setup_datasets.py` (Downloads weights, clinical ranges, and SpineTrack data).
+
+### Execution
+*   **Full Pipeline:** `python unified_pipeline.py`
+*   **Build Features Only:** `python unified_pipeline.py --build-dataset`
+*   **Evaluation Only:** `python unified_pipeline.py --eval-only`
+
+---
+
+## 📧 8. Research Credits
+*   **Methodology:** Anatomical referencing based on SpinePose (CVPR 2025).
+*   **Validation:** Biomechanical grounding derived from the Mendeley Posture Dataset.

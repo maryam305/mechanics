@@ -1,0 +1,4 @@
+video,valid_frames_geo,valid_frames_anat,geo_mean_deg,geo_std_deg,anat_mean_deg,anat_std_deg,corrected_mean_deg,corrected_std_deg,mean_confidence
+Normal Posture,101,48,5.07,7.43,8.93,18.34,9.00,18.28,1.000
+Mild Kyphosis,56,56,22.00,19.75,4.02,1.61,4.04,1.62,1.000
+Severe Kyphosis,45,36,35.65,17.31,15.62,19.85,15.52,19.36,1.000
